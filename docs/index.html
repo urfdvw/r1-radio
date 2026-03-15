@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=240, height=320, user-scalable=no, initial-scale=1.0" />
+        <title>UI Experimenter App</title>
+        <link rel="icon" type="image" href="/icon.png" />
+      <script type="module" crossorigin src="./assets/main-CfL5Z6LC.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/main-DJThFpqG.css">
+    </head>
+    <body>
+        <div id="app">
+            <h1>Web Radio</h1>
+            <div class="radio-container">
+                <div class="input-group">
+                    <label for="urlInput">Stream URL</label>
+                    <input type="text" id="urlInput" placeholder="Enter radio stream URL" />
+                </div>
+
+                <button id="playStopBtn" class="control-btn">Play</button>
+
+                <div class="metadata-display">
+                    <div class="status" id="status">Stopped</div>
+                    <div class="volume" id="volume">Volume: 70%</div>
+                    <div class="track-info" id="trackInfo"></div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

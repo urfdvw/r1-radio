@@ -1,0 +1,142 @@
+/* Base styles for R1 device (240x282px portrait) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 4vw;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#app {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5vw;
+}
+
+h1 {
+    font-size: 7vw;
+    color: #FE5F00;
+    margin-bottom: 5vh;
+    text-align: center;
+}
+
+/* Radio Container */
+.radio-container {
+    width: 90vw;
+    display: flex;
+    flex-direction: column;
+    gap: 4vh;
+}
+
+/* Input Group */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+}
+
+.input-group label {
+    font-size: 3.5vw;
+    color: #FE5F00;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#urlInput {
+    width: 100%;
+    min-height: 44px;
+    padding: 3vw;
+    font-size: 3.5vw;
+    background-color: #1a1a1a;
+    color: #fff;
+    border: 2px solid #333;
+    border-radius: 2vw;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+#urlInput:focus {
+    border-color: #FE5F00;
+}
+
+#urlInput::placeholder {
+    color: #666;
+}
+
+/* Control Button */
+.control-btn {
+    width: 100%;
+    min-height: 50px;
+    padding: 4vw;
+    font-size: 5vw;
+    font-weight: bold;
+    background-color: #FE5F00;
+    color: #000;
+    border: none;
+    border-radius: 2vw;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.2s;
+}
+
+.control-btn:active {
+    opacity: 0.7;
+}
+
+.control-btn.playing {
+    background-color: #ff3333;
+}
+
+.control-btn.stopped {
+    background-color: #FE5F00;
+}
+
+/* Metadata Display */
+.metadata-display {
+    background-color: #1a1a1a;
+    border: 2px solid #333;
+    border-radius: 2vw;
+    padding: 4vw;
+    min-height: 20vh;
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+}
+
+.status {
+    font-size: 4vw;
+    font-weight: bold;
+    color: #FE5F00;
+    text-align: center;
+}
+
+.volume {
+    font-size: 3vw;
+    color: #bdbdbd;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+.track-info {
+    font-size: 3.5vw;
+    color: #ccc;
+    text-align: center;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}

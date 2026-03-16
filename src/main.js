@@ -31,8 +31,8 @@ let currentVolume = DEFAULT_VOLUME;
 let urlInput;
 let playStopBtn;
 let statusDisplay;
-let trackInfoDisplay;
 let volumeDisplay;
+let volumeBarFill;
 let scanQrBtn;
 let scannerModal;
 let qrVideo;
@@ -63,9 +63,12 @@ function initAudioElement() {
     audioElement.addEventListener('error', handleAudioError);
     audioElement.addEventListener('loadstart', handleLoadStart);
     audioElement.addEventListener('canplay', handleCanPlay);
-    
-    // Try to extract metadata
-    audioElement.addEventListener('loadedmetadata', handleMetadata);
+  }
+}
+
+function setStatus(message) {
+  if (statusDisplay) {
+    statusDisplay.textContent = message;
   }
 }
 
@@ -90,36 +93,25 @@ function handleAudioEnded() {
 function handleAudioError(e) {
   console.error('Audio error:', e);
   isPlaying = false;
-  statusDisplay.textContent = 'Error';
-  trackInfoDisplay.textContent = 'Failed to load stream. Check URL and try again.';
+  setStatus('Error');
   playStopBtn.textContent = 'Play';
   playStopBtn.classList.remove('playing');
   playStopBtn.classList.add('stopped');
 }
 
 function handleLoadStart() {
-  statusDisplay.textContent = 'Loading...';
-  trackInfoDisplay.textContent = 'Connecting to stream...';
+  setStatus('Loading...');
 }
 
 function handleCanPlay() {
   if (isPlaying) {
-    statusDisplay.textContent = 'Playing';
-    trackInfoDisplay.textContent = currentUrl;
-  }
-}
-
-function handleMetadata() {
-  console.log('Metadata loaded');
-  // Basic metadata from audio element (limited for streams)
-  if (audioElement.duration && !isNaN(audioElement.duration) && audioElement.duration !== Infinity) {
-    trackInfoDisplay.textContent = `Duration: ${Math.floor(audioElement.duration)}s`;
+    setStatus('Playing');
   }
 }
 
 async function playStream(url) {
   if (!url || url.trim() === '') {
-    trackInfoDisplay.textContent = 'Please enter a valid URL';
+    setStatus('Enter URL');
     return;
   }
   
@@ -148,14 +140,12 @@ async function playStream(url) {
         })
         .catch(error => {
           console.error('Playback failed:', error);
-          statusDisplay.textContent = 'Error';
-          trackInfoDisplay.textContent = 'Playback failed. Check URL format.';
+          setStatus('Error');
         });
     }
   } catch (error) {
     console.error('Error playing stream:', error);
-    statusDisplay.textContent = 'Error';
-    trackInfoDisplay.textContent = 'Failed to play stream';
+    setStatus('Error');
   }
 }
 
@@ -176,8 +166,7 @@ function resumeStream() {
       })
       .catch(error => {
         console.error('Resume failed:', error);
-        statusDisplay.textContent = 'Error';
-        trackInfoDisplay.textContent = 'Failed to resume playback';
+        setStatus('Error');
       });
   }
 }
@@ -189,6 +178,10 @@ function clampVolume(volume) {
 function updateVolumeDisplay() {
   if (volumeDisplay) {
     volumeDisplay.textContent = `Volume: ${Math.round(currentVolume * 100)}%`;
+  }
+
+  if (volumeBarFill) {
+    volumeBarFill.style.height = `${Math.round(currentVolume * 100)}%`;
   }
 }
 
@@ -287,12 +280,11 @@ async function handleQrScanSuccess(decodedText) {
   closeQrScanner();
 
   if (!parsedText) {
-    trackInfoDisplay.textContent = 'QR code was empty.';
+    setStatus('QR Error');
     return;
   }
 
   urlInput.value = parsedText;
-  trackInfoDisplay.textContent = 'QR code scanned. Starting playback...';
   await playStream(parsedText);
 }
 
@@ -344,7 +336,7 @@ async function openQrScanner() {
   }
 
   if (!navigator.mediaDevices?.getUserMedia) {
-    trackInfoDisplay.textContent = 'Camera scanning is not supported on this device.';
+    setStatus('No Camera');
     return;
   }
 
@@ -379,7 +371,7 @@ async function openQrScanner() {
   } catch (error) {
     console.error('Unable to start QR scanner:', error);
     setScannerMessage('Camera access failed. Check permissions and try again.', true);
-    trackInfoDisplay.textContent = 'Camera access failed. Check permissions and try again.';
+    setStatus('Cam Error');
   }
 }
 
@@ -392,10 +384,7 @@ function updateUI() {
     playStopBtn.textContent = 'Stop';
     playStopBtn.classList.add('playing');
     playStopBtn.classList.remove('stopped');
-    statusDisplay.textContent = 'Playing';
-    if (!trackInfoDisplay.textContent || trackInfoDisplay.textContent === 'Stopped') {
-      trackInfoDisplay.textContent = currentUrl;
-    }
+    setStatus('Playing');
   } else {
     if (currentUrl) {
       playStopBtn.textContent = 'Resume';
@@ -404,7 +393,7 @@ function updateUI() {
     }
     playStopBtn.classList.remove('playing');
     playStopBtn.classList.add('stopped');
-    statusDisplay.textContent = 'Stopped';
+    setStatus('Stopped');
   }
 
   updateVolumeDisplay();
@@ -431,8 +420,7 @@ function handlePlayStopClick() {
       playStream(url);
     } else {
       // No URL entered
-      statusDisplay.textContent = 'Error';
-      trackInfoDisplay.textContent = 'Please enter a stream URL';
+      setStatus('Enter URL');
     }
   }
 }
@@ -520,8 +508,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   urlInput = document.getElementById('urlInput');
   playStopBtn = document.getElementById('playStopBtn');
   statusDisplay = document.getElementById('status');
-  trackInfoDisplay = document.getElementById('trackInfo');
   volumeDisplay = document.getElementById('volume');
+  volumeBarFill = document.getElementById('volumeBarFill');
   scanQrBtn = document.getElementById('scanQrBtn');
   scannerModal = document.getElementById('scannerModal');
   qrVideo = document.getElementById('qrVideo');

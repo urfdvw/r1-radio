@@ -292,13 +292,8 @@ async function handleQrScanSuccess(decodedText) {
   }
 
   urlInput.value = parsedText;
-  await saveSettings(parsedText, currentVolume);
-
-  trackInfoDisplay.textContent = isPlaying
-    ? 'Scanned URL loaded into the input.'
-    : 'QR code scanned. Ready to play.';
-
-  urlInput.focus({ preventScroll: true });
+  trackInfoDisplay.textContent = 'QR code scanned. Starting playback...';
+  await playStream(parsedText);
 }
 
 function scanQrFrame() {

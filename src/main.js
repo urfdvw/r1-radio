@@ -18,6 +18,7 @@ const DEFAULT_STREAM_URL = 'https://radio.gotanno.love/;?type=http&nocache=2997'
 const DEFAULT_MIME_TYPE = 'audio/mpeg';
 const DEFAULT_VOLUME = 0.7;
 const VOLUME_STEP = 0.05;
+const VOLUME_BAR_HIDE_DELAY_MS = 3000;
 
 let audioElement = null;
 let isPlaying = false;
@@ -32,6 +33,7 @@ let urlInput;
 let playStopBtn;
 let statusDisplay;
 let volumeDisplay;
+let volumeMeter;
 let volumeBarFill;
 let scanQrBtn;
 let scannerModal;
@@ -44,6 +46,7 @@ let qrScanStream = null;
 let qrScanFrameId = null;
 let qrCanvasContext = null;
 let scannerOpen = false;
+let volumeBarHideTimeoutId = null;
 
 // ===========================================
 // Audio Player Functions
@@ -175,6 +178,34 @@ function clampVolume(volume) {
   return Math.min(1, Math.max(0, volume));
 }
 
+function hideVolumeMeter() {
+  if (volumeBarHideTimeoutId) {
+    clearTimeout(volumeBarHideTimeoutId);
+    volumeBarHideTimeoutId = null;
+  }
+
+  if (volumeMeter) {
+    volumeMeter.classList.remove('visible');
+  }
+}
+
+function showVolumeMeterTemporarily() {
+  if (!volumeMeter) {
+    return;
+  }
+
+  volumeMeter.classList.add('visible');
+
+  if (volumeBarHideTimeoutId) {
+    clearTimeout(volumeBarHideTimeoutId);
+  }
+
+  volumeBarHideTimeoutId = window.setTimeout(() => {
+    volumeMeter?.classList.remove('visible');
+    volumeBarHideTimeoutId = null;
+  }, VOLUME_BAR_HIDE_DELAY_MS);
+}
+
 function updateVolumeDisplay() {
   if (volumeDisplay) {
     volumeDisplay.textContent = `Volume: ${Math.round(currentVolume * 100)}%`;
@@ -200,6 +231,7 @@ function changeVolume(delta) {
   setVolume(currentVolume + delta);
 
   if (previousVolume !== currentVolume) {
+    showVolumeMeterTemporarily();
     console.log(`Volume changed: ${Math.round(currentVolume * 100)}%`);
     const urlToSave = currentUrl || urlInput?.value?.trim() || DEFAULT_STREAM_URL;
     saveSettings(urlToSave, currentVolume);
@@ -509,6 +541,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   playStopBtn = document.getElementById('playStopBtn');
   statusDisplay = document.getElementById('status');
   volumeDisplay = document.getElementById('volume');
+  volumeMeter = document.querySelector('.volume-meter');
   volumeBarFill = document.getElementById('volumeBarFill');
   scanQrBtn = document.getElementById('scanQrBtn');
   scannerModal = document.getElementById('scannerModal');
@@ -584,6 +617,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
   closeQrScanner();
+  hideVolumeMeter();
 
   if (audioElement) {
     audioElement.pause();

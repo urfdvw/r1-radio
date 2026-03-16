@@ -62,6 +62,13 @@ body {
     width: 3px;
     background: rgba(254, 95, 0, 0.12);
     overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.volume-meter.visible {
+    opacity: 1;
 }
 
 .volume-meter-fill {

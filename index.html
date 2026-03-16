@@ -2,26 +2,49 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=240, height=320, user-scalable=no, initial-scale=1.0" />
+        <meta name="viewport" content="width=240, height=282, user-scalable=no, initial-scale=1.0" />
         <title>UI Experimenter App</title>
         <link rel="stylesheet" href="/src/style.css" />
         <link rel="icon" type="image" href="/icon.png" />
     </head>
     <body>
-        <div id="app">
-            <h1>Web Radio</h1>
-            <div class="radio-container">
-                <div class="input-group">
-                    <label for="urlInput">Stream URL</label>
-                    <input type="text" id="urlInput" placeholder="Enter radio stream URL" />
+        <div id="deviceRoot">
+            <div id="app">
+                <h1>Web Radio</h1>
+                <div class="radio-container">
+                    <div class="input-group">
+                        <label for="urlInput">Stream URL</label>
+                        <div class="input-row">
+                            <input type="text" id="urlInput" placeholder="Enter radio stream URL" />
+                            <button
+                                id="scanQrBtn"
+                                class="scan-btn"
+                                type="button"
+                                aria-label="Scan QR code with camera"
+                            >
+                                QR
+                            </button>
+                        </div>
+                    </div>
+
+                    <button id="playStopBtn" class="control-btn">Play</button>
+
+                    <div class="metadata-display">
+                        <div class="status" id="status">Stopped</div>
+                        <div class="volume" id="volume">Volume: 70%</div>
+                        <div class="track-info" id="trackInfo"></div>
+                    </div>
                 </div>
 
-                <button id="playStopBtn" class="control-btn">Play</button>
-
-                <div class="metadata-display">
-                    <div class="status" id="status">Stopped</div>
-                    <div class="volume" id="volume">Volume: 70%</div>
-                    <div class="track-info" id="trackInfo"></div>
+                <div id="scannerModal" class="scanner-modal hidden" aria-hidden="true">
+                    <div class="scanner-panel">
+                        <div class="scanner-preview">
+                            <video id="qrVideo" playsinline muted></video>
+                            <canvas id="qrCanvas" hidden></canvas>
+                        </div>
+                        <div id="scannerMessage" class="scanner-message">Point the camera at a QR code</div>
+                        <button id="closeScannerBtn" class="scanner-close-btn" type="button">Cancel</button>
+                    </div>
                 </div>
             </div>
         </div>

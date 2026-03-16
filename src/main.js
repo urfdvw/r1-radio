@@ -1,3 +1,5 @@
+import jsQR from 'jsqr';
+
 // Web Radio Player for R1 Device
 // Supports streaming audio with dynamic playback controls
 
@@ -31,6 +33,17 @@ let playStopBtn;
 let statusDisplay;
 let trackInfoDisplay;
 let volumeDisplay;
+let scanQrBtn;
+let scannerModal;
+let qrVideo;
+let qrCanvas;
+let scannerMessage;
+let closeScannerBtn;
+
+let qrScanStream = null;
+let qrScanFrameId = null;
+let qrCanvasContext = null;
+let scannerOpen = false;
 
 // ===========================================
 // Audio Player Functions
@@ -200,6 +213,181 @@ function changeVolume(delta) {
   }
 }
 
+function parseQrText(payload) {
+  const trimmedPayload = payload.trim();
+
+  if (!trimmedPayload) {
+    return '';
+  }
+
+  try {
+    const parsedPayload = JSON.parse(trimmedPayload);
+
+    if (typeof parsedPayload === 'string' && parsedPayload.trim()) {
+      return parsedPayload.trim();
+    }
+
+    const candidateKeys = ['url', 'streamUrl', 'streamURL', 'text', 'value', 'data'];
+    for (const key of candidateKeys) {
+      const candidate = parsedPayload?.[key];
+      if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate.trim();
+      }
+    }
+  } catch (error) {}
+
+  return trimmedPayload;
+}
+
+function setScannerMessage(message, isError = false) {
+  if (!scannerMessage) {
+    return;
+  }
+
+  scannerMessage.textContent = message;
+  scannerMessage.classList.toggle('error', isError);
+}
+
+function stopQrScanner() {
+  if (qrScanFrameId) {
+    cancelAnimationFrame(qrScanFrameId);
+    qrScanFrameId = null;
+  }
+
+  if (qrVideo) {
+    qrVideo.pause();
+    qrVideo.srcObject = null;
+  }
+
+  if (qrScanStream) {
+    qrScanStream.getTracks().forEach((track) => track.stop());
+    qrScanStream = null;
+  }
+}
+
+function closeQrScanner() {
+  scannerOpen = false;
+  stopQrScanner();
+
+  if (scannerModal) {
+    scannerModal.classList.add('hidden');
+    scannerModal.setAttribute('aria-hidden', 'true');
+  }
+
+  if (scanQrBtn) {
+    scanQrBtn.disabled = false;
+  }
+
+  setScannerMessage('Point the camera at a QR code');
+}
+
+async function handleQrScanSuccess(decodedText) {
+  const parsedText = parseQrText(decodedText);
+
+  closeQrScanner();
+
+  if (!parsedText) {
+    trackInfoDisplay.textContent = 'QR code was empty.';
+    return;
+  }
+
+  urlInput.value = parsedText;
+  await saveSettings(parsedText, currentVolume);
+
+  trackInfoDisplay.textContent = isPlaying
+    ? 'Scanned URL loaded into the input.'
+    : 'QR code scanned. Ready to play.';
+
+  urlInput.focus({ preventScroll: true });
+}
+
+function scanQrFrame() {
+  if (!scannerOpen || !qrVideo || !qrCanvas) {
+    return;
+  }
+
+  if (qrVideo.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+    const { videoWidth, videoHeight } = qrVideo;
+
+    if (videoWidth > 0 && videoHeight > 0) {
+      if (!qrCanvasContext) {
+        qrCanvasContext = qrCanvas.getContext('2d', { willReadFrequently: true });
+      }
+
+      if (!qrCanvasContext) {
+        qrScanFrameId = requestAnimationFrame(scanQrFrame);
+        return;
+      }
+
+      if (qrCanvas.width !== videoWidth) {
+        qrCanvas.width = videoWidth;
+      }
+
+      if (qrCanvas.height !== videoHeight) {
+        qrCanvas.height = videoHeight;
+      }
+
+      qrCanvasContext.drawImage(qrVideo, 0, 0, videoWidth, videoHeight);
+      const imageData = qrCanvasContext.getImageData(0, 0, videoWidth, videoHeight);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'attemptBoth'
+      });
+
+      if (code?.data) {
+        handleQrScanSuccess(code.data);
+        return;
+      }
+    }
+  }
+
+  qrScanFrameId = requestAnimationFrame(scanQrFrame);
+}
+
+async function openQrScanner() {
+  if (scannerOpen) {
+    return;
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    trackInfoDisplay.textContent = 'Camera scanning is not supported on this device.';
+    return;
+  }
+
+  scannerOpen = true;
+
+  if (scannerModal) {
+    scannerModal.classList.remove('hidden');
+    scannerModal.setAttribute('aria-hidden', 'false');
+  }
+
+  if (scanQrBtn) {
+    scanQrBtn.disabled = true;
+  }
+
+  setScannerMessage('Opening camera...');
+
+  try {
+    qrScanStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: {
+          ideal: 'environment'
+        }
+      }
+    });
+
+    qrVideo.srcObject = qrScanStream;
+    await qrVideo.play();
+
+    setScannerMessage('Point the camera at a QR code');
+    scanQrFrame();
+  } catch (error) {
+    console.error('Unable to start QR scanner:', error);
+    setScannerMessage('Camera access failed. Check permissions and try again.', true);
+    trackInfoDisplay.textContent = 'Camera access failed. Check permissions and try again.';
+  }
+}
+
 // ===========================================
 // UI Update Functions
 // ===========================================
@@ -238,7 +426,9 @@ function handlePlayStopClick() {
     // Stop playback
     stopStream();
   } else {
-    if (currentUrl && audioElement && audioElement.src) {
+    if (url && url !== currentUrl) {
+      playStream(url);
+    } else if (currentUrl && audioElement && audioElement.src) {
       // Resume existing stream
       resumeStream();
     } else if (url) {
@@ -305,6 +495,12 @@ async function loadSettings() {
 
 window.addEventListener('sideClick', () => {
   console.log('Side button clicked');
+
+  if (scannerOpen) {
+    closeQrScanner();
+    return;
+  }
+
   handlePlayStopClick();
 });
 
@@ -331,6 +527,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   statusDisplay = document.getElementById('status');
   trackInfoDisplay = document.getElementById('trackInfo');
   volumeDisplay = document.getElementById('volume');
+  scanQrBtn = document.getElementById('scanQrBtn');
+  scannerModal = document.getElementById('scannerModal');
+  qrVideo = document.getElementById('qrVideo');
+  qrCanvas = document.getElementById('qrCanvas');
+  scannerMessage = document.getElementById('scannerMessage');
+  closeScannerBtn = document.getElementById('closeScannerBtn');
   
   // Load last used settings
   const { lastUrl, volume } = await loadSettings();
@@ -349,6 +551,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Button click handler
   playStopBtn.addEventListener('click', handlePlayStopClick);
+  scanQrBtn.addEventListener('click', openQrScanner);
+  closeScannerBtn.addEventListener('click', closeQrScanner);
   
   // Save URL when it changes
   urlInput.addEventListener('change', () => {
@@ -375,6 +579,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         event.preventDefault();
         changeVolume(-VOLUME_STEP);
       }
+
+      if (event.code === 'Escape' && scannerOpen) {
+        event.preventDefault();
+        closeQrScanner();
+      }
     });
 
     window.addEventListener('wheel', (event) => {
@@ -391,6 +600,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
+  closeQrScanner();
+
   if (audioElement) {
     audioElement.pause();
     audioElement.src = '';

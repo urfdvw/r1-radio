@@ -5,33 +5,130 @@
         <meta name="viewport" content="width=240, height=282, user-scalable=no, initial-scale=1.0" />
         <title>UI Experimenter App</title>
         <link rel="icon" type="image" href="./icon.png" />
-      <script type="module" crossorigin src="./assets/main-M85ogJlf.js"></script>
-      <link rel="stylesheet" crossorigin href="./assets/main-CIT27Va-.css">
+      <script type="module" crossorigin src="./assets/main-DX2IZlWS.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/main-DxhF2MDo.css">
     </head>
     <body>
         <div id="deviceRoot">
             <div id="app">
-                <div class="radio-container">
-                    <div class="input-group">
-                        <div class="input-row">
-                            <input type="text" id="urlInput" placeholder="Enter radio stream URL" />
-                            <button
-                                id="scanQrBtn"
-                                class="scan-btn"
-                                type="button"
-                                aria-label="Scan QR code with camera"
-                            >
-                                QR
-                            </button>
+                <div class="ipod-shell">
+                    <div class="display-panel" aria-live="polite">
+                        <div id="status" class="display-status">Paused</div>
+                        <div id="stationUrlDisplay" class="display-url">No station selected</div>
+                        <div class="volume-meter" aria-hidden="true">
+                            <div id="volumeBarFill" class="volume-meter-fill"></div>
                         </div>
                     </div>
 
-                    <button id="playStopBtn" class="control-btn">Play</button>
-                </div>
-            </div>
+                    <input type="hidden" id="urlInput" />
 
-            <div class="volume-meter" aria-hidden="true">
-                <div id="volumeBarFill" class="volume-meter-fill"></div>
+                    <div class="clickwheel-stage">
+                        <div id="clickwheel" class="clickwheel" aria-label="Simulated iPod click wheel">
+                            <button id="wheelUpBtn" class="wheel-btn wheel-btn-top" type="button" aria-label="Menu">
+                                MENU
+                            </button>
+
+                            <button
+                                id="wheelLeftBtn"
+                                class="wheel-btn wheel-btn-left"
+                                type="button"
+                                aria-label="Previous control"
+                            >
+                                <svg viewBox="0 0 48 48" aria-hidden="true">
+                                    <path
+                                        d="M17 12v24M31 15l-11 9 11 9"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="3.5"
+                                    />
+                                </svg>
+                            </button>
+
+                            <button
+                                id="wheelRightBtn"
+                                class="wheel-btn wheel-btn-right"
+                                type="button"
+                                aria-label="Next control"
+                            >
+                                <svg viewBox="0 0 48 48" aria-hidden="true">
+                                    <path
+                                        d="M31 12v24M17 15l11 9-11 9"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="3.5"
+                                    />
+                                </svg>
+                            </button>
+
+                            <button
+                                id="playStopBtn"
+                                class="wheel-btn wheel-btn-bottom"
+                                type="button"
+                                aria-label="Play or pause stream"
+                            >
+                                <svg viewBox="0 0 48 48" aria-hidden="true">
+                                    <path
+                                        d="M16 15.5v17M24 15.5v17M30 15.5l10 8.5-10 8.5z"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="3.5"
+                                    />
+                                </svg>
+                            </button>
+
+                            <button
+                                id="scanQrBtn"
+                                class="wheel-center"
+                                type="button"
+                                aria-label="Start QR scanner"
+                            >
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <rect
+                                        x="3"
+                                        y="3"
+                                        width="5"
+                                        height="5"
+                                        rx="0.75"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.75"
+                                    />
+                                    <rect
+                                        x="16"
+                                        y="3"
+                                        width="5"
+                                        height="5"
+                                        rx="0.75"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.75"
+                                    />
+                                    <rect
+                                        x="3"
+                                        y="16"
+                                        width="5"
+                                        height="5"
+                                        rx="0.75"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.75"
+                                    />
+                                    <rect x="10.5" y="10.5" width="2" height="2" rx="0.4" fill="currentColor" />
+                                    <rect x="14" y="10.5" width="2" height="2" rx="0.4" fill="currentColor" />
+                                    <rect x="10.5" y="14" width="2" height="2" rx="0.4" fill="currentColor" />
+                                    <rect x="14" y="14" width="3.5" height="3.5" rx="0.5" fill="currentColor" />
+                                    <rect x="18.5" y="18.5" width="2" height="2" rx="0.4" fill="currentColor" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="scannerModal" class="scanner-modal hidden" aria-hidden="true">

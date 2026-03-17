@@ -19,6 +19,7 @@ const DEFAULT_MIME_TYPE = 'audio/mpeg';
 const DEFAULT_VOLUME = 0.7;
 const VOLUME_STEP = 0.05;
 const VOLUME_BAR_HIDE_DELAY_MS = 3000;
+const ROTATION_STEP_DEGREES = 10;
 
 let audioElement = null;
 let isPlaying = false;
@@ -32,10 +33,14 @@ let currentVolume = DEFAULT_VOLUME;
 let urlInput;
 let playStopBtn;
 let statusDisplay;
-let volumeDisplay;
+let stationUrlDisplay;
 let volumeMeter;
 let volumeBarFill;
 let scanQrBtn;
+let clickwheel;
+let wheelUpBtn;
+let wheelLeftBtn;
+let wheelRightBtn;
 let scannerModal;
 let qrVideo;
 let qrCanvas;
@@ -47,6 +52,13 @@ let qrScanFrameId = null;
 let qrCanvasContext = null;
 let scannerOpen = false;
 let volumeBarHideTimeoutId = null;
+const wheelRotationState = {
+  active: false,
+  pointerId: null,
+  previousAngle: 0,
+  accumulatedDelta: 0,
+  suppressClick: false
+};
 
 // ===========================================
 // Audio Player Functions
@@ -69,10 +81,20 @@ function initAudioElement() {
   }
 }
 
-function setStatus(message) {
-  if (statusDisplay) {
-    statusDisplay.textContent = message;
+function updateStatusDisplay() {
+  if (!statusDisplay) {
+    return;
   }
+
+  statusDisplay.textContent = isPlaying ? 'Now Playing' : 'Paused';
+}
+
+function updateStationUrlDisplay(url = currentUrl || urlInput?.value?.trim() || '') {
+  if (!stationUrlDisplay) {
+    return;
+  }
+
+  stationUrlDisplay.textContent = url || 'No station selected';
 }
 
 function handleAudioPlay() {
@@ -96,36 +118,32 @@ function handleAudioEnded() {
 function handleAudioError(e) {
   console.error('Audio error:', e);
   isPlaying = false;
-  setStatus('Error');
-  playStopBtn.textContent = 'Play';
-  playStopBtn.classList.remove('playing');
-  playStopBtn.classList.add('stopped');
+  updateUI();
 }
 
 function handleLoadStart() {
-  setStatus('Loading...');
+  updateUI();
 }
 
 function handleCanPlay() {
-  if (isPlaying) {
-    setStatus('Playing');
-  }
+  updateUI();
 }
 
 async function playStream(url) {
   if (!url || url.trim() === '') {
-    setStatus('Enter URL');
     return;
   }
   
   initAudioElement();
   
   try {
-    currentUrl = url;
+    currentUrl = url.trim();
+    urlInput.value = currentUrl;
+    updateStationUrlDisplay(currentUrl);
     saveSettings(currentUrl, currentVolume);
     
     // Set the source with proper MIME type handling
-    audioElement.src = url;
+    audioElement.src = currentUrl;
     audioElement.type = DEFAULT_MIME_TYPE;
     
     // Force load the audio
@@ -143,12 +161,14 @@ async function playStream(url) {
         })
         .catch(error => {
           console.error('Playback failed:', error);
-          setStatus('Error');
+          isPlaying = false;
+          updateUI();
         });
     }
   } catch (error) {
     console.error('Error playing stream:', error);
-    setStatus('Error');
+    isPlaying = false;
+    updateUI();
   }
 }
 
@@ -169,7 +189,8 @@ function resumeStream() {
       })
       .catch(error => {
         console.error('Resume failed:', error);
-        setStatus('Error');
+        isPlaying = false;
+        updateUI();
       });
   }
 }
@@ -183,36 +204,15 @@ function hideVolumeMeter() {
     clearTimeout(volumeBarHideTimeoutId);
     volumeBarHideTimeoutId = null;
   }
-
-  if (volumeMeter) {
-    volumeMeter.classList.remove('visible');
-  }
 }
 
 function showVolumeMeterTemporarily() {
-  if (!volumeMeter) {
-    return;
-  }
-
-  volumeMeter.classList.add('visible');
-
-  if (volumeBarHideTimeoutId) {
-    clearTimeout(volumeBarHideTimeoutId);
-  }
-
-  volumeBarHideTimeoutId = window.setTimeout(() => {
-    volumeMeter?.classList.remove('visible');
-    volumeBarHideTimeoutId = null;
-  }, VOLUME_BAR_HIDE_DELAY_MS);
+  return;
 }
 
 function updateVolumeDisplay() {
-  if (volumeDisplay) {
-    volumeDisplay.textContent = `Volume: ${Math.round(currentVolume * 100)}%`;
-  }
-
   if (volumeBarFill) {
-    volumeBarFill.style.height = `${Math.round(currentVolume * 100)}%`;
+    volumeBarFill.style.width = `${Math.round(currentVolume * 100)}%`;
   }
 }
 
@@ -312,11 +312,13 @@ async function handleQrScanSuccess(decodedText) {
   closeQrScanner();
 
   if (!parsedText) {
-    setStatus('QR Error');
+    console.warn('QR scan did not contain a usable URL');
     return;
   }
 
   urlInput.value = parsedText;
+  currentUrl = parsedText;
+  updateStationUrlDisplay(parsedText);
   await playStream(parsedText);
 }
 
@@ -368,7 +370,7 @@ async function openQrScanner() {
   }
 
   if (!navigator.mediaDevices?.getUserMedia) {
-    setStatus('No Camera');
+    console.warn('Camera access is not available on this device');
     return;
   }
 
@@ -403,7 +405,6 @@ async function openQrScanner() {
   } catch (error) {
     console.error('Unable to start QR scanner:', error);
     setScannerMessage('Camera access failed. Check permissions and try again.', true);
-    setStatus('Cam Error');
   }
 }
 
@@ -412,23 +413,140 @@ async function openQrScanner() {
 // ===========================================
 
 function updateUI() {
-  if (isPlaying) {
-    playStopBtn.textContent = 'Stop';
-    playStopBtn.classList.add('playing');
-    playStopBtn.classList.remove('stopped');
-    setStatus('Playing');
-  } else {
-    if (currentUrl) {
-      playStopBtn.textContent = 'Resume';
-    } else {
-      playStopBtn.textContent = 'Play';
-    }
-    playStopBtn.classList.remove('playing');
-    playStopBtn.classList.add('stopped');
-    setStatus('Stopped');
+  updateStatusDisplay();
+  updateStationUrlDisplay();
+
+  if (playStopBtn) {
+    playStopBtn.setAttribute('aria-pressed', String(isPlaying));
   }
 
   updateVolumeDisplay();
+}
+
+function normalizeAngleDelta(delta) {
+  if (delta > 180) {
+    return delta - 360;
+  }
+
+  if (delta < -180) {
+    return delta + 360;
+  }
+
+  return delta;
+}
+
+function getClickwheelMetrics(event) {
+  if (!clickwheel) {
+    return null;
+  }
+
+  const bounds = clickwheel.getBoundingClientRect();
+  const centerX = bounds.left + bounds.width / 2;
+  const centerY = bounds.top + bounds.height / 2;
+  const deltaX = event.clientX - centerX;
+  const deltaY = event.clientY - centerY;
+
+  return {
+    angle: Math.atan2(deltaY, deltaX) * (180 / Math.PI),
+    distance: Math.hypot(deltaX, deltaY),
+    radius: bounds.width / 2
+  };
+}
+
+function isInRotationRing(metrics) {
+  if (!metrics) {
+    return false;
+  }
+
+  return metrics.distance >= metrics.radius * 0.45 && metrics.distance <= metrics.radius * 0.98;
+}
+
+function endWheelRotation() {
+  if (!wheelRotationState.active) {
+    return;
+  }
+
+  if (clickwheel && wheelRotationState.pointerId !== null && clickwheel.hasPointerCapture(wheelRotationState.pointerId)) {
+    clickwheel.releasePointerCapture(wheelRotationState.pointerId);
+  }
+
+  wheelRotationState.active = false;
+  wheelRotationState.pointerId = null;
+  wheelRotationState.accumulatedDelta = 0;
+  clickwheel?.classList.remove('dragging');
+}
+
+function handleClickwheelPointerDown(event) {
+  if (event.pointerType === 'mouse' && event.button !== 0) {
+    return;
+  }
+
+  if (event.target.closest('.wheel-center')) {
+    return;
+  }
+
+  const metrics = getClickwheelMetrics(event);
+  if (!isInRotationRing(metrics)) {
+    return;
+  }
+
+  wheelRotationState.active = true;
+  wheelRotationState.pointerId = event.pointerId;
+  wheelRotationState.previousAngle = metrics.angle;
+  wheelRotationState.accumulatedDelta = 0;
+  wheelRotationState.suppressClick = false;
+  clickwheel?.setPointerCapture(event.pointerId);
+  clickwheel?.classList.add('dragging');
+  event.preventDefault();
+}
+
+function handleClickwheelPointerMove(event) {
+  if (!wheelRotationState.active || event.pointerId !== wheelRotationState.pointerId) {
+    return;
+  }
+
+  const metrics = getClickwheelMetrics(event);
+  if (!metrics) {
+    return;
+  }
+
+  const angleDelta = normalizeAngleDelta(metrics.angle - wheelRotationState.previousAngle);
+  wheelRotationState.previousAngle = metrics.angle;
+  wheelRotationState.accumulatedDelta += angleDelta;
+
+  while (Math.abs(wheelRotationState.accumulatedDelta) >= ROTATION_STEP_DEGREES) {
+    const volumeDelta = wheelRotationState.accumulatedDelta > 0 ? VOLUME_STEP : -VOLUME_STEP;
+    changeVolume(volumeDelta);
+    wheelRotationState.suppressClick = true;
+    wheelRotationState.accumulatedDelta += wheelRotationState.accumulatedDelta > 0
+      ? -ROTATION_STEP_DEGREES
+      : ROTATION_STEP_DEGREES;
+  }
+
+  event.preventDefault();
+}
+
+function handleClickwheelClickCapture(event) {
+  if (!wheelRotationState.suppressClick) {
+    return;
+  }
+
+  if (event.target.closest('button')) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  wheelRotationState.suppressClick = false;
+}
+
+function handleClickwheelScroll(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  changeVolume(event.deltaY < 0 ? VOLUME_STEP : -VOLUME_STEP);
+}
+
+function logWheelDirection(direction) {
+  console.log(`Click wheel ${direction} button pressed`);
 }
 
 // ===========================================
@@ -439,20 +557,16 @@ function handlePlayStopClick() {
   const url = urlInput.value.trim();
   
   if (isPlaying) {
-    // Stop playback
     stopStream();
   } else {
     if (url && url !== currentUrl) {
       playStream(url);
     } else if (currentUrl && audioElement && audioElement.src) {
-      // Resume existing stream
       resumeStream();
     } else if (url) {
-      // Start new stream
       playStream(url);
     } else {
-      // No URL entered
-      setStatus('Enter URL');
+      console.warn('No stream URL available');
     }
   }
 }
@@ -540,10 +654,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   urlInput = document.getElementById('urlInput');
   playStopBtn = document.getElementById('playStopBtn');
   statusDisplay = document.getElementById('status');
-  volumeDisplay = document.getElementById('volume');
+  stationUrlDisplay = document.getElementById('stationUrlDisplay');
   volumeMeter = document.querySelector('.volume-meter');
   volumeBarFill = document.getElementById('volumeBarFill');
   scanQrBtn = document.getElementById('scanQrBtn');
+  clickwheel = document.getElementById('clickwheel');
+  wheelUpBtn = document.getElementById('wheelUpBtn');
+  wheelLeftBtn = document.getElementById('wheelLeftBtn');
+  wheelRightBtn = document.getElementById('wheelRightBtn');
   scannerModal = document.getElementById('scannerModal');
   qrVideo = document.getElementById('qrVideo');
   qrCanvas = document.getElementById('qrCanvas');
@@ -559,7 +677,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     urlInput.value = lastUrl;
     currentUrl = lastUrl;
   } else {
-    // Set default stream URL
     urlInput.value = DEFAULT_STREAM_URL;
     currentUrl = DEFAULT_STREAM_URL;
     await saveSettings(DEFAULT_STREAM_URL, currentVolume);
@@ -568,15 +685,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Button click handler
   playStopBtn.addEventListener('click', handlePlayStopClick);
   scanQrBtn.addEventListener('click', openQrScanner);
+  wheelUpBtn.addEventListener('click', () => logWheelDirection('up'));
+  wheelLeftBtn.addEventListener('click', () => logWheelDirection('left'));
+  wheelRightBtn.addEventListener('click', () => logWheelDirection('right'));
   closeScannerBtn.addEventListener('click', closeQrScanner);
-  
-  // Save URL when it changes
-  urlInput.addEventListener('change', () => {
-    const url = urlInput.value.trim();
-    if (url) {
-      saveSettings(url, currentVolume);
-    }
-  });
+
+  clickwheel.addEventListener('pointerdown', handleClickwheelPointerDown);
+  clickwheel.addEventListener('pointermove', handleClickwheelPointerMove);
+  clickwheel.addEventListener('pointerup', endWheelRotation);
+  clickwheel.addEventListener('pointercancel', endWheelRotation);
+  clickwheel.addEventListener('lostpointercapture', endWheelRotation);
+  clickwheel.addEventListener('click', handleClickwheelClickCapture, true);
+  clickwheel.addEventListener('wheel', handleClickwheelScroll, { passive: false });
   
   // Keyboard + wheel fallback for development
   if (typeof PluginMessageHandler === 'undefined') {
@@ -586,14 +706,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.dispatchEvent(new CustomEvent('sideClick'));
       }
 
-      if (event.code === 'ArrowUp') {
+      if (event.code === 'Enter') {
         event.preventDefault();
-        changeVolume(VOLUME_STEP);
+        openQrScanner();
       }
 
       if (event.code === 'ArrowDown') {
         event.preventDefault();
-        changeVolume(-VOLUME_STEP);
+        handlePlayStopClick();
+      }
+
+      if (event.code === 'ArrowUp') {
+        event.preventDefault();
+        logWheelDirection('up');
+      }
+
+      if (event.code === 'ArrowLeft') {
+        event.preventDefault();
+        logWheelDirection('left');
+      }
+
+      if (event.code === 'ArrowRight') {
+        event.preventDefault();
+        logWheelDirection('right');
       }
 
       if (event.code === 'Escape' && scannerOpen) {

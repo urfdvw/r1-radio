@@ -8,7 +8,8 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html')
+        main: resolve(__dirname, 'index.html'),
+        search: resolve(__dirname, 'search.html')
       }
     }
   }

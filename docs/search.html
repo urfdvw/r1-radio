@@ -1,44 +1,499 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Search</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find a Station — R1 Radio</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-            html, body {
-                width: 100%;
-                height: 100%;
-                background: #000000;
-                color: #ffffff;
-                font-family: "Avenir Next", "Trebuchet MS", "Gill Sans", sans-serif;
-            }
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      background: #f5f5f0;
+      color: #1a1a1a;
+      font-size: 14px;
+      overflow: hidden;
+    }
 
-            .page {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 100%;
-                height: 100%;
-                min-height: 100vh;
-            }
+    /* ── Layout ─────────────────────────────────────────── */
 
-            .placeholder {
-                font-size: 24px;
-                font-weight: 400;
-                color: rgba(255, 255, 255, 0.4);
-                letter-spacing: 0.04em;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="page">
-            <span class="placeholder">Search</span>
+    .page {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ── Left Panel ──────────────────────────────────────── */
+
+    .left-panel {
+      width: 60%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      border-right: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    .search-section {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 9px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #f9fafb;
+      color: #1a1a1a;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-input:focus {
+      border-color: #2563eb;
+      background: #fff;
+    }
+
+    /* ── Filters ─────────────────────────────────────────── */
+
+    .filters-section {
+      padding: 12px 20px 14px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .filter-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .filter-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .filter-input-wrap {
+      position: relative;
+    }
+
+    .filter-input {
+      width: 100%;
+      padding: 5px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #f9fafb;
+      color: #1a1a1a;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .filter-input:focus {
+      border-color: #2563eb;
+      background: #fff;
+    }
+
+    .ac-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 3px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+      z-index: 200;
+      overflow: hidden;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .ac-item {
+      padding: 7px 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      gap: 8px;
+    }
+    .ac-item:hover, .ac-item.active {
+      background: #eff6ff;
+    }
+    .ac-count {
+      font-size: 11px;
+      color: #9ca3af;
+      flex-shrink: 0;
+    }
+
+    .chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .chips-row:empty { display: none; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 8px;
+      background: #e0e7ff;
+      color: #3730a3;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s;
+    }
+    .chip:hover { background: #c7d2fe; }
+    .chip::after {
+      content: '×';
+      font-size: 14px;
+      line-height: 1;
+      margin-left: 1px;
+    }
+
+    /* ── Results ─────────────────────────────────────────── */
+
+    .results-section {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .empty-state {
+      padding: 48px 24px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .result-row {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+      transition: background 0.1s;
+    }
+    .result-row:hover { background: #eff6ff; }
+    .result-row.selected { background: #dbeafe; }
+
+    .pagination-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 10px 20px;
+      border-top: 1px solid #f3f4f6;
+      background: #ffffff;
+      min-height: 44px;
+    }
+
+    .page-btn {
+      padding: 5px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #fff;
+      color: #374151;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .page-btn:hover:not(:disabled) {
+      background: #eff6ff;
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+    .page-btn:disabled {
+      color: #d1d5db;
+      cursor: default;
+    }
+
+    .page-info {
+      font-size: 13px;
+      color: #6b7280;
+      min-width: 56px;
+      text-align: center;
+    }
+
+    .result-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .result-meta {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    /* ── Right Panel ─────────────────────────────────────── */
+
+    .right-panel {
+      width: 40%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: #f5f5f0;
+      overflow: hidden;
+    }
+
+    /* Card wrapper fills remaining space */
+    .card-wrapper {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 24px 10px;
+    }
+
+    /* Portrait card: width 2, height 3.5 → aspect-ratio 2/3.5 */
+    .card {
+      aspect-ratio: 2 / 3.5;
+      height: 100%;
+      max-width: 100%;
+      width: auto;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8% 8%;
+      gap: 5%;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    }
+
+    .card-qr {
+      width: 58%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      display: none;
+    }
+    .card-qr.visible { display: block; }
+
+    .card-placeholder {
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .card-placeholder.hidden { display: none; }
+
+    .card-name {
+      font-size: clamp(9px, 5%, 15px);
+      font-weight: 700;
+      text-align: center;
+      color: #1a1a1a;
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    .card-description {
+      font-size: clamp(7px, 3.5%, 11px);
+      text-align: center;
+      color: #6b7280;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+
+    .save-row {
+      padding: 0 24px 12px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .save-btn {
+      padding: 7px 22px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .save-btn:hover { background: #1d4ed8; }
+    .save-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* ── Preview Panel ───────────────────────────────────── */
+
+    .preview-panel {
+      padding: 14px 20px 16px;
+      background: #ffffff;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .preview-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .preview-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .preview-input {
+      padding: 6px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #1a1a1a;
+      background: #f9fafb;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    .preview-input:focus {
+      border-color: #2563eb;
+      background: #fff;
+    }
+
+    .preview-url {
+      font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+      font-size: 11px;
+    }
+
+    .play-btn {
+      margin-top: 2px;
+      padding: 9px;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+    .play-btn:hover { background: #374151; }
+    .play-btn[data-playing="true"] { background: #dc2626; }
+    .play-btn[data-playing="true"]:hover { background: #b91c1c; }
+  </style>
+  <script type="module" crossorigin src="./assets/search-VWdM8Ghs.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/_commonjsHelpers-B-UnjaXt.js">
+</head>
+<body>
+  <div class="page">
+
+    <!-- ── Left 60% ── -->
+    <div class="left-panel">
+
+      <div class="search-section">
+        <input id="searchInput" type="search" class="search-input"
+               placeholder="Search by name…" autocomplete="off" />
+      </div>
+
+      <div class="filters-section">
+
+        <div class="filter-row">
+          <label class="filter-label">Country</label>
+          <div class="filter-input-wrap">
+            <input id="countryInput" type="text" class="filter-input"
+                   placeholder="Add country…" autocomplete="off" />
+            <div id="countryDropdown" class="ac-dropdown"></div>
+          </div>
+          <div id="countryChips" class="chips-row"></div>
         </div>
-    </body>
+
+        <div class="filter-row">
+          <label class="filter-label">Language</label>
+          <div class="filter-input-wrap">
+            <input id="languageInput" type="text" class="filter-input"
+                   placeholder="Add language…" autocomplete="off" />
+            <div id="languageDropdown" class="ac-dropdown"></div>
+          </div>
+          <div id="languageChips" class="chips-row"></div>
+        </div>
+
+        <div class="filter-row">
+          <label class="filter-label">Tag</label>
+          <div class="filter-input-wrap">
+            <input id="tagInput" type="text" class="filter-input"
+                   placeholder="Add tag…" autocomplete="off" />
+            <div id="tagDropdown" class="ac-dropdown"></div>
+          </div>
+          <div id="tagChips" class="chips-row"></div>
+        </div>
+
+      </div>
+
+      <div class="results-section">
+        <div id="emptyState" class="empty-state">
+          Add a filter or search above to find stations.
+        </div>
+        <div id="resultsList"></div>
+      </div>
+
+      <div id="pagination" class="pagination-bar"></div>
+
+    </div>
+
+    <!-- ── Right 40% ── -->
+    <div class="right-panel">
+
+      <div class="card-wrapper">
+        <div id="card" class="card">
+          <img id="qrImg" class="card-qr" src="" alt="QR Code" />
+          <div id="cardPlaceholder" class="card-placeholder">
+            Select a station<br />or enter a URL below
+          </div>
+          <div id="cardName" class="card-name"></div>
+          <div id="cardDescription" class="card-description"></div>
+        </div>
+      </div>
+
+      <div class="save-row">
+        <button id="saveBtn" class="save-btn">Save as Image</button>
+      </div>
+
+      <div class="preview-panel">
+        <div class="preview-field">
+          <label class="preview-label">Name</label>
+          <input id="previewName" type="text" class="preview-input"
+                 placeholder="Station name…" />
+        </div>
+        <div class="preview-field">
+          <label class="preview-label">Description</label>
+          <input id="previewDescription" type="text" class="preview-input"
+                 placeholder="Tags, country, language…" />
+        </div>
+        <div class="preview-field">
+          <label class="preview-label">Stream URL</label>
+          <input id="previewUrl" type="url" class="preview-input preview-url"
+                 placeholder="https://…" />
+        </div>
+        <button id="playBtn" class="play-btn" data-playing="false">▶ Play</button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
 </html>

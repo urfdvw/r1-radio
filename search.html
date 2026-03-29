@@ -271,44 +271,46 @@
       border-radius: 10px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 8% 8%;
-      gap: 5%;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 6% 8% 8%;
+      gap: 6%;
       box-shadow: 0 1px 6px rgba(0,0,0,0.07);
     }
 
     .card-qr {
-      width: 58%;
+      width: 100%;
       height: auto;
       aspect-ratio: 1 / 1;
       display: none;
+      border-radius: 4px;
     }
     .card-qr.visible { display: block; }
 
     .card-placeholder {
       font-size: 12px;
       color: #9ca3af;
-      text-align: center;
+      text-align: left;
       line-height: 1.5;
+      margin: auto 0;
     }
     .card-placeholder.hidden { display: none; }
 
     .card-name {
-      font-size: clamp(9px, 5%, 15px);
+      font-size: clamp(24px, 16%, 44px);
       font-weight: 700;
-      text-align: center;
+      text-align: left;
       color: #1a1a1a;
       word-break: break-word;
-      line-height: 1.3;
+      line-height: 1.2;
     }
 
     .card-description {
-      font-size: clamp(7px, 3.5%, 11px);
-      text-align: center;
+      font-size: clamp(18px, 11%, 30px);
+      text-align: left;
       color: #6b7280;
       word-break: break-word;
-      line-height: 1.5;
+      line-height: 1.4;
     }
 
     .save-row {
@@ -395,6 +397,11 @@
     .play-btn:hover { background: #374151; }
     .play-btn[data-playing="true"] { background: #dc2626; }
     .play-btn[data-playing="true"]:hover { background: #b91c1c; }
+    .play-btn:disabled {
+      background: #6b7280;
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
   </style>
 </head>
 <body>

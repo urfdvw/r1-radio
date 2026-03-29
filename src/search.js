@@ -37,16 +37,34 @@ audio.addEventListener('ended', () => setPlaying(false));
 audio.addEventListener('error', () => setPlaying(false));
 audio.addEventListener('pause', () => setPlaying(false));
 audio.addEventListener('play', () => setPlaying(true));
+audio.addEventListener('waiting', () => setLoading(true));
+audio.addEventListener('playing', () => setLoading(false));
+audio.addEventListener('canplay', () => setLoading(false));
 
 function setPlaying(val) {
   state.playing = val;
+  setLoading(false);
   const btn = document.getElementById('playBtn');
   btn.textContent = val ? '■ Stop' : '▶ Play';
   btn.dataset.playing = String(val);
+  btn.disabled = false;
+}
+
+function setLoading(val) {
+  const btn = document.getElementById('playBtn');
+  if (!btn) return;
+  if (val) {
+    btn.textContent = 'Loading…';
+    btn.dataset.playing = 'false';
+    btn.disabled = true;
+  } else {
+    btn.disabled = false;
+  }
 }
 
 function playUrl(url) {
   if (!url) return;
+  setLoading(true);
   audio.src = url;
   audio.play().catch(err => {
     console.error('Playback error:', err);

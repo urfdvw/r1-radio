@@ -581,9 +581,10 @@ function handlePlayStopClick() {
 // Persistent Storage
 // ===========================================
 
-async function saveSettings(url = currentUrl, volume = currentVolume) {
+async function saveSettings(url = currentUrl, volume = currentVolume, stationName = currentStationName) {
   const payload = {
     lastUrl: url,
+    lastStationName: stationName || null,
     volume: clampVolume(volume)
   };
 
@@ -620,6 +621,7 @@ async function loadSettings() {
 
   return {
     lastUrl: typeof settings?.lastUrl === 'string' ? settings.lastUrl : null,
+    lastStationName: typeof settings?.lastStationName === 'string' ? settings.lastStationName : null,
     volume: typeof settings?.volume === 'number' ? clampVolume(settings.volume) : DEFAULT_VOLUME
   };
 }
@@ -675,13 +677,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   closeScannerBtn = document.getElementById('closeScannerBtn');
   
   // Load last used settings
-  const { lastUrl, volume } = await loadSettings();
+  const { lastUrl, lastStationName, volume } = await loadSettings();
   setVolume(volume);
 
   // Load last used URL or set default
   if (lastUrl) {
     urlInput.value = lastUrl;
     currentUrl = lastUrl;
+    currentStationName = lastStationName;
+    updateStationUrlDisplay();
   } else {
     urlInput.value = DEFAULT_STREAM_URL;
     currentUrl = DEFAULT_STREAM_URL;

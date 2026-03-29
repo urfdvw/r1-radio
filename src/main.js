@@ -24,6 +24,7 @@ const ROTATION_STEP_DEGREES = 10;
 let audioElement = null;
 let isPlaying = false;
 let currentUrl = '';
+let currentStationName = null;
 let currentVolume = DEFAULT_VOLUME;
 
 // ===========================================
@@ -94,7 +95,7 @@ function updateStationUrlDisplay(url = currentUrl || urlInput?.value?.trim() || 
     return;
   }
 
-  stationUrlDisplay.textContent = url || 'No station selected';
+  stationUrlDisplay.textContent = currentStationName || url || 'No station selected';
 }
 
 function handleAudioPlay() {
@@ -139,7 +140,7 @@ async function playStream(url) {
   try {
     currentUrl = url.trim();
     urlInput.value = currentUrl;
-    updateStationUrlDisplay(currentUrl);
+    updateStationUrlDisplay();
     saveSettings(currentUrl, currentVolume);
     
     // Set the source with proper MIME type handling
@@ -242,26 +243,29 @@ function parseQrText(payload) {
   const trimmedPayload = payload.trim();
 
   if (!trimmedPayload) {
-    return '';
+    return { url: '', name: null };
   }
 
   try {
     const parsedPayload = JSON.parse(trimmedPayload);
 
     if (typeof parsedPayload === 'string' && parsedPayload.trim()) {
-      return parsedPayload.trim();
+      return { url: parsedPayload.trim(), name: null };
     }
 
     const candidateKeys = ['url', 'streamUrl', 'streamURL', 'text', 'value', 'data'];
     for (const key of candidateKeys) {
       const candidate = parsedPayload?.[key];
       if (typeof candidate === 'string' && candidate.trim()) {
-        return candidate.trim();
+        const name = typeof parsedPayload?.name === 'string' && parsedPayload.name.trim()
+          ? parsedPayload.name.trim()
+          : null;
+        return { url: candidate.trim(), name };
       }
     }
   } catch (error) {}
 
-  return trimmedPayload;
+  return { url: trimmedPayload, name: null };
 }
 
 function setScannerMessage(message, isError = false) {
@@ -307,19 +311,20 @@ function closeQrScanner() {
 }
 
 async function handleQrScanSuccess(decodedText) {
-  const parsedText = parseQrText(decodedText);
+  const { url, name } = parseQrText(decodedText);
 
   closeQrScanner();
 
-  if (!parsedText) {
+  if (!url) {
     console.warn('QR scan did not contain a usable URL');
     return;
   }
 
-  urlInput.value = parsedText;
-  currentUrl = parsedText;
-  updateStationUrlDisplay(parsedText);
-  await playStream(parsedText);
+  currentStationName = name;
+  urlInput.value = url;
+  currentUrl = url;
+  updateStationUrlDisplay();
+  await playStream(url);
 }
 
 function scanQrFrame() {
@@ -560,6 +565,7 @@ function handlePlayStopClick() {
     stopStream();
   } else {
     if (url && url !== currentUrl) {
+      currentStationName = null;
       playStream(url);
     } else if (currentUrl && audioElement && audioElement.src) {
       resumeStream();

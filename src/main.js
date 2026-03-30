@@ -581,44 +581,25 @@ function handlePlayStopClick() {
 // Persistent Storage
 // ===========================================
 
-async function saveSettings(url = currentUrl, volume = currentVolume, stationName = currentStationName) {
+function saveSettings(url = currentUrl, volume = currentVolume, stationName = currentStationName) {
   const payload = {
     lastUrl: url,
     lastStationName: stationName || null,
     volume: clampVolume(volume)
   };
-
-  if (window.creationStorage) {
-    try {
-      const encoded = btoa(JSON.stringify(payload));
-      await window.creationStorage.plain.setItem('radio_data', encoded);
-    } catch (e) {
-      console.error('Error saving settings:', e);
-    }
-  } else {
-    localStorage.setItem('radio_data', JSON.stringify(payload));
-  }
+  localStorage.setItem('radio_data', JSON.stringify(payload));
 }
 
-async function loadSettings() {
+function loadSettings() {
   let settings = null;
-
-  if (window.creationStorage) {
+  const stored = localStorage.getItem('radio_data');
+  if (stored) {
     try {
-      const stored = await window.creationStorage.plain.getItem('radio_data');
-      if (stored) {
-        settings = JSON.parse(atob(stored));
-      }
+      settings = JSON.parse(stored);
     } catch (e) {
       console.error('Error loading settings:', e);
     }
-  } else {
-    const stored = localStorage.getItem('radio_data');
-    if (stored) {
-      settings = JSON.parse(stored);
-    }
   }
-
   return {
     lastUrl: typeof settings?.lastUrl === 'string' ? settings.lastUrl : null,
     lastStationName: typeof settings?.lastStationName === 'string' ? settings.lastStationName : null,
@@ -677,7 +658,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   closeScannerBtn = document.getElementById('closeScannerBtn');
   
   // Load last used settings
-  const { lastUrl, lastStationName, volume } = await loadSettings();
+  const { lastUrl, lastStationName, volume } = loadSettings();
   setVolume(volume);
 
   // Load last used URL or set default
@@ -689,7 +670,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     urlInput.value = DEFAULT_STREAM_URL;
     currentUrl = DEFAULT_STREAM_URL;
-    await saveSettings(DEFAULT_STREAM_URL, currentVolume);
+    saveSettings(DEFAULT_STREAM_URL, currentVolume);
   }
   
   // Button click handler
